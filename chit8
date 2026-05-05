@@ -1,0 +1,74 @@
+======================================chit8
+
+//requires forestfire dataset
+
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# --- PART 1: VISUALIZATION ---
+print("Running Part 1: Visualization...")
+df = pd.read_csv('forestfires.csv')
+plt.figure(figsize=(8,5))
+sns.histplot(df['temp'], kde=True, color='red')
+plt.title('Forest Fire Temperature Distribution')
+plt.savefig('fire_viz.png') # Saves the graph to your folder
+print("Visualization saved as fire_viz.png")
+
+# --- PART 2: PyHADOOP MAPREDUCE (Creating files) ---
+print("\nPreparing Part 2: PyHadoop...")
+mapper = """import sys
+for line in sys.stdin:
+    words = line.strip().split(',')
+    if words[0] != 'X': print(f'{words[2]}\\t{words[10]}')
+"""
+with open('mapper.py', 'w') as f: f.write(mapper)
+
+reducer = """import sys
+curr_m, max_t = None, 0
+for line in sys.stdin:
+    m, t = line.strip().split('\\t')
+    t = float(t)
+    if curr_m == m: max_t = max(max_t, t)
+    else:
+        if curr_m: print(f'{curr_m}\\t{max_t}')
+        curr_m, max_t = m, t
+print(f'{curr_m}\\t{max_t}')
+"""
+with open('reducer.py', 'w') as f: f.write(reducer)
+
+os.system('chmod +x mapper.py reducer.py')
+print("Mapper and Reducer scripts created.")
+
+# --- PART 3: HIVE DATA MINING (Query Script) ---
+print("\nPreparing Part 3: Hive Queries...")
+hive_script = """
+CREATE DATABASE IF NOT EXISTS fire_db;
+USE fire_db;
+CREATE TABLE IF NOT EXISTS forest_fires (X INT, Y INT, month STRING, day STRING, FFMC DOUBLE, DMC DOUBLE, DC DOUBLE, ISI DOUBLE, temp DOUBLE, RH DOUBLE, wind DOUBLE, rain DOUBLE, area DOUBLE)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
+LOAD DATA LOCAL INPATH 'forestfires.csv' INTO TABLE forest_fires;
+SELECT month, AVG(temp) FROM forest_fires GROUP BY month HAVING AVG(temp) > 20;
+"""
+with open('fire_mining.sql', 'w') as f: f.write(hive_script)
+print("Hive script created as fire_mining.sql")
+
+print("\n--- ALL FILES READY ---")
+print("1. View graph: open fire_viz.png")
+print("2. Run Hadoop: hadoop jar /path/to/hadoop-streaming.jar -file mapper.py -mapper 'python3 mapper.py' -file reducer.py -reducer 'python3 reducer.py' -input /fire_data -output /fire_out")
+print("3. Run Hive: hive -f fire_mining.sql")
+
+// save this entire code in to a file.
+
+//run in the terminal
+python3 chit8_master.py
+
+//section A
+hadoop jar /path/to/hadoop-streaming.jar \
+-file mapper.py -mapper "python3 mapper.py" \
+-file reducer.py -reducer "python3 reducer.py" \
+-input /forestfire_data -output /fire_output
+
+//section B
+hive -f fire_mining.sql
