@@ -1,0 +1,54 @@
+===============================chit 2
+  
+//cell1
+#import os
+#os.listdir()
+
+//cell 2
+  import pandas as pd
+df = pd.read_csv('dataset_Facebook.csv', sep=';')
+df.head()
+
+//cell3
+# Creating a subset by selecting specific columns
+# We use double brackets [[ ]] for multiple columns
+subset_1 = df[['Type', 'Category', 'Post Month', 'like', 'share']]
+
+# Let's see the 'shape' to confirm it's a smaller piece
+print("Rows and Columns in subset:", subset_1.shape)
+subset_1.head()
+
+/cell4
+# Sorting the subset by 'likes' in descending order (highest first)
+sorted_subset = subset_1.sort_values(by='like', ascending=False)
+
+sorted_subset.head()
+
+//cell5
+# Transpose the version you ALREADY sorted in the previous cell
+transposed_data = sorted_subset.transpose()
+transposed_data.head()
+
+//cell6
+# Melting turns columns into rows to make it 'long' format
+# id_vars: columns you want to keep as they are
+# value_vars: columns you want to 'unpivot' or melt
+melted_data = pd.melt(subset_1, id_vars=['Type'], value_vars=['like', 'share'])
+
+melted_data.head(10)
+
+//cell7
+# Turning that long 'melted' data back into a wide table
+pivot_table = melted_data.pivot_table(index='Type', columns='variable', values='value')
+
+pivot_table.head()
+
+//cell8
+# Create a second subset
+subset_2 = df[['Type', 'Category']].iloc[10:20]
+
+# Concatenate (Stack them on top of each other)
+merged_data = pd.concat([subset_1, subset_2])
+
+print("New shape after merging:", merged_data.shape)
+merged_data.head(10)
