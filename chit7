@@ -1,0 +1,40 @@
+================================chit7
+  
+//ALL CODE IN SINGLE CELL ONLY
+
+import requests
+from bs4 import BeautifulSoup
+import random
+
+# Step 1: Website
+url = "https://quotes.toscrape.com/"
+response = requests.get(url)
+soup = BeautifulSoup(response.text, "html.parser")
+
+quotes = soup.find_all("div", class_="quote")
+
+# Step 2: Loop through data
+for q in quotes:
+    # Use standard spaces for indentation here
+    name = q.find("small", class_="author").text
+    
+    # Review (Quote)
+    review = q.find("span", class_="text").text
+    
+    # Tags - Fixed the missing underscore in class_="tag"
+    tags = [tag.text for tag in q.find_all("a", class_="tag")]
+    
+    rating = random.choice(["1", "2", "3", "4", "5"])
+    title = tags[0].capitalize() + " Thoughts" if tags else "General Review"
+    
+    print("=" * 60)
+    print(f"Customer Name : {name}")
+    print(f"Rating        : {rating}")
+    print(f"Review Title  : {title}")
+    print(f"Review        : {review}")
+    print(f"Tags          : {', '.join(tags)}")
+    print("=" * 60)
+    print("\n")
+
+  //prints 10  reviews as output..
+  
