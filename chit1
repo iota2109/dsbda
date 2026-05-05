@@ -1,0 +1,75 @@
+======================CHIT 1:--
+//main code
+
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class LogAnalysis {
+
+    // Mapper Class: Separates User from Duration
+    public static class LogMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            String[] line = value.toString().split(","); 
+            if (line.length >= 2) {
+                context.write(new Text(line[0]), new IntWritable(Integer.parseInt(line[1])));
+            }
+        }
+    }
+
+    // Reducer Class: Sums total duration per User
+    public static class LogReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int total = 0;
+            for (IntWritable val : values) {
+                total += val.get();
+            }
+            context.write(key, new IntWritable(total));
+        }
+    }
+
+    // Driver: Configures the Hadoop Job
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "log analysis");
+        job.setJarByClass(LogAnalysis.class);
+        job.setMapperClass(LogMapper.class);
+        job.setReducerClass(LogReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+2. Where and How to Execute
+Open your Ubuntu terminal and run these commands one by one.
+
+Create your Input Data:
+
+nano log.txt
+
+Paste: Prasad,120, User1,50, Prasad,60
+
+Save and exit (Ctrl+O, Enter, Ctrl+X).
+
+Compile the Java Code:
+javac -classpath $(hadoop classpath) -d . LogAnalysis.java
+
+Create the Runnable JAR:
+jar -cvf log.jar *.class
+
+Prepare HDFS (The Hadoop File System):
+hadoop fs -mkdir /input_dir
+hadoop fs -put log.txt /input_dir
+
+Run the Chit 1 Application:
+hadoop jar log.jar LogAnalysis /input_dir /output_dir
+
+See your Result:
+hadoop fs -cat /output_dir/part-r-00000
