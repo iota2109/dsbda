@@ -1,0 +1,56 @@
+========================================chit3
+
+in terminal, go to 'hive'
+
+//A part
+-- A. Creating, Dropping, and Altering Database tables
+CREATE DATABASE IF NOT EXISTS flight_db;
+USE flight_db;
+
+CREATE TABLE flights_temp (Year INT, Month INT, DayofMonth INT, DepDelay INT);
+ALTER TABLE flights_temp ADD COLUMNS (Origin STRING);
+DROP TABLE flights_temp;
+
+//B part
+-- B. Creating an external Hive table
+-- Note: Replace the LOCATION path with your actual data folder path
+CREATE EXTERNAL TABLE flights_external (
+    Year INT, Month INT, DayofMonth INT, DayOfWeek INT, 
+    DepTime INT, CRSDepTime INT, ArrTime INT, CRSArrTime INT, 
+    UniqueCarrier STRING, FlightNum INT, TailNum STRING, 
+    ActualElapsedTime INT, CRSElapsedTime INT, AirTime INT, 
+    ArrDelay INT, DepDelay INT, Origin STRING, Dest STRING, 
+    Distance INT, TaxiIn INT, TaxiOut INT, Cancelled INT, 
+    CancellationCode STRING, Diverted INT
+)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ','
+LOCATION '/home/prasad/flight_data_folder';
+
+//TO GET A CLEAN LIST OF CODES.. go to jupyter, upload dataset and..
+import pandas as pd
+df = pd.read_csv('/home/prasad/flights.csv', nrows=0)
+print(df.columns.tolist())
+
+//C part
+-- C. Load table with data, Insert new values, Join tables
+LOAD DATA LOCAL INPATH '/home/prasad/flights.csv' INTO TABLE flights_external;
+
+INSERT INTO TABLE flights_external VALUES (2008,1,1,2,1030,1030,1200,1200,'WN',123,'N123',90,90,70,0,0,'PNQ','BOM',120,5,5,0,'',0);
+
+CREATE TABLE IF NOT EXISTS airports (code STRING, city STRING);
+INSERT INTO TABLE airports VALUES ('PNQ', 'Pune'), ('BOM', 'Mumbai');
+
+SELECT f.FlightNum, a.city FROM flights_external f JOIN airports a ON (f.Origin = a.code) LIMIT 10;
+
+//D part
+-- D. Create index on Flight Information Table
+CREATE INDEX flight_idx ON TABLE flights_external(FlightNum) AS 'COMPACT' WITH DEFERRED REBUILD;
+ALTER INDEX flight_idx ON flights_external REBUILD;
+
+//e part
+-- E. Find the average departure delay per day in 2008
+SELECT DayofMonth, AVG(DepDelay) 
+FROM flights_external 
+WHERE Year = 2008 
+GROUP BY DayofMonth;
