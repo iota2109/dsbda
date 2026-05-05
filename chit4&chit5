@@ -1,0 +1,117 @@
+============================chit4,5(combined)
+
+//cell1
+  import pandas as pd
+import numpy as np
+
+# Load the file
+# sep=';' fixes the columns
+# decimal=',' fixes the 'European' numbers like 10,5 into 10.5
+df_air = pd.read_csv('AirQualityUCI.csv', sep=';', decimal=',')
+
+# The 'Final Sweep': Delete the completely empty ghost columns and rows
+df_air.dropna(how='all', axis=1, inplace=True)
+df_air.dropna(how='all', axis=0, inplace=True)
+
+# Show the result
+df_air.head()
+
+//cell2
+# Mark the sensor errors (-200) as empty holes (NaN)
+df_air.replace(-200, np.nan, inplace=True)
+
+# Now check how many holes we actually created in each column
+print(df_air.isnull().sum())
+
+//cell3
+# Fill all the NaN holes with the average of each column
+# numeric_only=True ensures we don't try to calculate an average for Date/Time
+df_air.fillna(df_air.mean(numeric_only=True), inplace=True)
+
+# Run the check again to see if we are at zero
+print(df_air.isnull().sum())
+
+//cell4
+# 1. Start fresh - remove any row that is entirely empty
+df_air.dropna(how='all', axis=0, inplace=True)
+
+# 2. Select only the columns we need for the model
+# Using Benzene (C6H6) to predict Sensor Response (PT08.S1) often gives a better score
+X = df_air[['C6H6(GT)']]
+y = df_air['PT08.S1(CO)']
+
+# 3. Split and Train
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+print("Final Model Score:", model.score(X_test, y_test))
+
+//cell5
+# 1. Drop every column that has ANY missing values (The Purge)
+df_heart = pd.read_csv('heart_disease_uci.csv', sep=';', decimal=',')
+df_heart_clean = df_heart.dropna(axis=1)
+
+# 2. Verify - this will only show columns that were already perfect
+print("Cleaned Columns:", df_heart_clean.columns.tolist())
+print(df_heart_clean.isnull().sum())
+
+# 3. Integration - Merge the clean Heart data with your Air data
+import pandas as pd
+integrated_df = pd.concat([df_air.head(), df_heart_clean.head()], axis=0)
+
+print("--- INTEGRATION COMPLETE ---")
+
+//cell6
+# 1. Take a small slice from each (the first 5 rows)
+# This prevents the final table from being a giant, unreadable mess
+air_slice = df_air.head()
+heart_slice = df_heart_clean.head()
+
+# 2. Integrate them (Stacking them)
+# axis=0 stacks them vertically
+# ignore_index=True resets the row numbers to 0, 1, 2...
+integrated_df = pd.concat([air_slice, heart_slice], axis=0, ignore_index=True)
+
+# 3. Prove it worked
+print("--- INTEGRATED DATASET PREVIEW ---")
+print(integrated_df)
+
+print("\n--- FINAL VERIFICATION ---")
+print("Total rows:", len(integrated_df))
+print("Total columns in integrated set:", len(integrated_df.columns))
+
+//ONLY FOR CHIT 5.....
+//cell7
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Load the Facebook dataset (Assignment 2)
+df_fb = pd.read_csv('dataset_Facebook.csv', sep=';')
+
+# 2. Clean the data (Fixing the median error)
+# We use numeric_only=True to avoid the TypeError with text columns
+df_fb = df_fb.fillna(df_fb.median(numeric_only=True))
+df_fb['Type'] = df_fb['Type'].fillna(df_fb['Type'].mode()[0])
+
+//cell8
+plt.figure(figsize=(8,5))
+sns.countplot(data=df_fb, x='Type', palette='viridis')
+plt.title('Frequency of Facebook Post Types')
+plt.show()
+
+//cell9
+plt.figure(figsize=(8,5))
+sns.scatterplot(data=df_fb, x='Page total likes', y='like', hue='Type')
+plt.title('Page Total Likes vs. Individual Post Likes')
+plt.show()
+
+//cell10
+plt.figure(figsize=(12,8))
+sns.heatmap(df_fb.select_dtypes(include=['float64', 'int64']).corr(), cmap='magma', annot=False)
+plt.title('Correlation Matrix of Facebook Metrics')
+plt.show()
